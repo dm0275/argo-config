@@ -31,7 +31,7 @@ add-repo-ssh: ## Add repository
 	@argocd repo add $(GITOPS_REPO_SSH) --ssh-private-key-path ~/.ssh/id_rsa --server $(ARGOCD_HOST) # --insecure --insecure-ignore-host-key
 
 create-app-cli: ## Create application via CLI
-	@argocd app create acd-application --repo $(GITOPS_REPO) --path applications/1-directory --dest-server https://kubernetes.default.svc --dest-namespace acd
+	@argocd app create app1 --repo $(GITOPS_REPO) --path applications/1-directory --dest-server https://kubernetes.default.svc --dest-namespace app1
 
 add-known-hosts:
 	ssh-keyscan github.com | argocd cert add-ssh --batch
