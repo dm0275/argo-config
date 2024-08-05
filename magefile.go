@@ -9,15 +9,17 @@ import (
 )
 
 type ArgoConfig struct {
-	Version string
+	Version         string
+	PortForwardPort string
 }
 
 var (
-	argocdHost    = "localhost:8080"
+	argocdHost    = "localhost"
 	gitOpsRepo    = "https://github.com/dm0275/argo-gitops.git"
 	gitOpsRepoSsh = "git@github.com:dm0275/argo-gitops.git"
 	config        = ArgoConfig{
-		Version: "v2.11.3", // use `stable` for the latest version
+		Version:         "v2.11.3", // use `stable` for the latest version
+		PortForwardPort: "8080",
 	}
 )
 
@@ -44,7 +46,7 @@ func InstallArgo() error {
 func PortForward() error {
 	fmt.Println("Argo can be accessed at:\nhttps://localhost:8080")
 	// Port forward the argo-server
-	_, err := run("kubectl port-forward svc/argocd-server -n argocd 8080:443")
+	_, err := run(fmt.Sprintf("kubectl port-forward svc/argocd-server -n argocd %s:443", config.PortForwardPort))
 	if err != nil {
 		return fmt.Errorf("unable to port-forward svc/argocd-server. ERROR: %s", err)
 	}
@@ -74,7 +76,7 @@ func ArgoLogin() error {
 	}
 
 	// Running argocd login using admin pass
-	output, err := run(fmt.Sprintf("argocd login --username admin --password %s --insecure localhost:8080", adminPass))
+	output, err := run(fmt.Sprintf("argocd login --username admin --password %s --insecure localhost:%s", adminPass, config.PortForwardPort))
 	if err != nil {
 		return fmt.Errorf("unable to login. ERROR: %s", err)
 	}
