@@ -11,15 +11,18 @@ import (
 type ArgoConfig struct {
 	Version         string
 	PortForwardPort string
+	SSHKeyPath      string
 }
 
 var (
-	argocdHost    = "localhost"
-	gitOpsRepo    = "https://github.com/dm0275/argo-gitops.git"
-	gitOpsRepoSsh = "git@github.com:dm0275/argo-gitops.git"
-	config        = ArgoConfig{
+	argocdHost          = "localhost"
+	gitOpsRepo          = "https://github.com/dm0275/argo-gitops.git"
+	gitOpsRepoSsh       = "git@github.com:dm0275/argo-gitops.git"
+	applicationManifest = "applications/application.yaml"
+	config              = ArgoConfig{
 		Version:         "v2.11.3", // use `stable` for the latest version
 		PortForwardPort: "8080",
+		SSHKeyPath:      "~/.ssh/id_rsa",
 	}
 )
 
@@ -44,7 +47,7 @@ func InstallArgo() error {
 
 // Port-forward the argocd server
 func PortForward() error {
-	fmt.Println("Argo can be accessed at:\nhttps://localhost:8080")
+	fmt.Println(fmt.Sprintf("Argo can be accessed at:\nhttps://localhost:%s", config.PortForwardPort))
 	// Port forward the argo-server
 	_, err := run(fmt.Sprintf("kubectl port-forward svc/argocd-server -n argocd %s:443", config.PortForwardPort))
 	if err != nil {
@@ -102,7 +105,7 @@ func AddKnownHosts() error {
 // Add Argo repo credentials
 func AddRepoCreds() error {
 	// Add repocreds
-	output, err := run("argocd repocreds add git@github.com --ssh-private-key-path ~/.ssh/id_rsa")
+	output, err := run(fmt.Sprintf("argocd repocreds add git@github.com --ssh-private-key-path %s", config.SSHKeyPath))
 	if err != nil {
 		return fmt.Errorf("unable add repocreds. ERROR: %s", err)
 	}
@@ -112,6 +115,7 @@ func AddRepoCreds() error {
 	return nil
 }
 
+// Add HTTP repository to Argo
 func AddRepo() error {
 	// Add new repo
 	output, err := run(fmt.Sprintf("argocd repo add %s --server %s", gitOpsRepo, argocdHost))
@@ -124,9 +128,10 @@ func AddRepo() error {
 	return nil
 }
 
+// Add SSH repository to Argo
 func AddRepoSsh() error {
 	// Add new repo
-	output, err := run(fmt.Sprintf("argocd repo add %s --ssh-private-key-path ~/.ssh/id_rsa --server %s", gitOpsRepoSsh, argocdHost))
+	output, err := run(fmt.Sprintf("argocd repo add %s --ssh-private-key-path %s --server %s", gitOpsRepoSsh, config.SSHKeyPath, argocdHost))
 	if err != nil {
 		return fmt.Errorf("unable add repository. ERROR: %s", err)
 	}
@@ -136,6 +141,7 @@ func AddRepoSsh() error {
 	return nil
 }
 
+// Created new application via argocd cli
 func CreateAppCli() error {
 	// Add new app via argocd cli
 	output, err := run(fmt.Sprintf("argocd app create app1 --repo %s --path applications/1-directory --dest-server https://kubernetes.default.svc --dest-namespace app1", gitOpsRepoSsh))
@@ -148,9 +154,10 @@ func CreateAppCli() error {
 	return nil
 }
 
+// Created new application via manifest
 func CreateAppManifest() error {
 	// Add new app via manifest
-	output, err := run("kubectl apply -f applications/application.yaml")
+	output, err := run(fmt.Sprintf("kubectl apply -f %s", applicationManifest))
 	if err != nil {
 		return fmt.Errorf("unable add application. ERROR: %s", err)
 	}
