@@ -5,10 +5,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/magefile/mage/sh"
+	"github.com/magefile/mage/mg"
 )
 
-type ArgoConfig struct {
+type ArgoCD mg.Namespace
+
+type ArgoCdConfig struct {
+	Namespace       string
 	Version         string
 	PortForwardPort string
 	SSHKeyPath      string
@@ -19,24 +22,25 @@ var (
 	gitOpsRepo          = "https://github.com/dm0275/argo-gitops.git"
 	gitOpsRepoSsh       = "git@github.com:dm0275/argo-gitops.git"
 	applicationManifest = "applications/application.yaml"
-	config              = ArgoConfig{
+	ArgoCDConfig        = ArgoCdConfig{
+		Namespace:       "argocd",
 		Version:         "v2.11.3", // use `stable` for the latest version
-		PortForwardPort: "8080",
 		SSHKeyPath:      "~/.ssh/id_rsa",
+		PortForwardPort: "8080",
 	}
 )
 
 // Creates the argocd namespace and installs argocd
-func InstallArgo() error {
+func (ArgoCD) Install() error {
 	// Create the ArgoCD namespace
-	output, err := run("kubectl create namespace argocd")
+	output, err := createNamespace(ArgoCDConfig.Namespace)
 	if err != nil {
 		return fmt.Errorf("unable to create argocd namespace. ERROR: %s", err)
 	}
 	fmt.Println(output)
 
 	// Deploy Argo on the cluster
-	output, err = run(fmt.Sprintf("kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/%s/manifests/install.yaml", config.Version))
+	output, err = run(fmt.Sprintf("kubectl apply -n %s -f https://raw.githubusercontent.com/argoproj/argo-cd/%s/manifests/install.yaml", ArgoCDConfig.Namespace, ArgoCDConfig.Version))
 	if err != nil {
 		return fmt.Errorf("unable to deploy argocd. ERROR: %s", err)
 	}
@@ -45,11 +49,11 @@ func InstallArgo() error {
 	return nil
 }
 
-// Port-forward the argocd server
-func PortForward() error {
-	fmt.Println(fmt.Sprintf("Argo can be accessed at:\nhttps://localhost:%s", config.PortForwardPort))
+// Port-forward the argocd gitops server
+func (ArgoCD) PortForward() error {
+	fmt.Println(fmt.Sprintf("Argo can be accessed at:\nhttps://localhost:%s", ArgoCDConfig.PortForwardPort))
 	// Port forward the argo-server
-	_, err := run(fmt.Sprintf("kubectl port-forward svc/argocd-server -n argocd %s:443", config.PortForwardPort))
+	_, err := run(fmt.Sprintf("kubectl port-forward svc/argocd-server -n %s %s:443", ArgoCDConfig.Namespace, ArgoCDConfig.PortForwardPort))
 	if err != nil {
 		return fmt.Errorf("unable to port-forward svc/argocd-server. ERROR: %s", err)
 	}
@@ -57,10 +61,10 @@ func PortForward() error {
 	return nil
 }
 
-// Get the initial admin password
-func GetAdminPassword() error {
+// Get the initial ArgoCD admin password
+func (ArgoCD) GetAdminPassword() error {
 	// Fetching admin password
-	output, err := run("argocd admin initial-password -n argocd | head -n 1")
+	output, err := run(fmt.Sprintf("argocd admin initial-password -n %s | head -n 1", ArgoCDConfig.Namespace))
 	if err != nil {
 		return fmt.Errorf("unable fetch admin credentials. ERROR: %s", err)
 	}
@@ -71,7 +75,7 @@ func GetAdminPassword() error {
 }
 
 // Login to argo via the cli (requires the argocd service to be accessible)
-func ArgoLogin() error {
+func (ArgoCD) Login() error {
 	// Fetching admin password
 	adminPass, err := run("argocd admin initial-password -n argocd | head -n 1")
 	if err != nil {
@@ -79,7 +83,7 @@ func ArgoLogin() error {
 	}
 
 	// Running argocd login using admin pass
-	output, err := run(fmt.Sprintf("argocd login --username admin --password %s --insecure localhost:%s", adminPass, config.PortForwardPort))
+	output, err := run(fmt.Sprintf("argocd login --username admin --password %s --insecure localhost:%s", adminPass, ArgoCDConfig.PortForwardPort))
 	if err != nil {
 		return fmt.Errorf("unable to login. ERROR: %s", err)
 	}
@@ -90,7 +94,7 @@ func ArgoLogin() error {
 }
 
 // Add github ssh cert
-func AddKnownHosts() error {
+func (ArgoCD) AddKnownHosts() error {
 	// Add github ssh cert
 	output, err := run("ssh-keyscan github.com | argocd cert add-ssh --batch")
 	if err != nil {
@@ -103,9 +107,9 @@ func AddKnownHosts() error {
 }
 
 // Add Argo repo credentials
-func AddRepoCreds() error {
+func (ArgoCD) AddRepoCreds() error {
 	// Add repocreds
-	output, err := run(fmt.Sprintf("argocd repocreds add git@github.com --ssh-private-key-path %s", config.SSHKeyPath))
+	output, err := run(fmt.Sprintf("argocd repocreds add git@github.com --ssh-private-key-path %s", ArgoCDConfig.SSHKeyPath))
 	if err != nil {
 		return fmt.Errorf("unable add repocreds. ERROR: %s", err)
 	}
@@ -116,7 +120,7 @@ func AddRepoCreds() error {
 }
 
 // Add HTTP repository to Argo
-func AddRepo() error {
+func (ArgoCD) AddRepo() error {
 	// Add new repo
 	output, err := run(fmt.Sprintf("argocd repo add %s --server %s", gitOpsRepo, argocdHost))
 	if err != nil {
@@ -129,9 +133,9 @@ func AddRepo() error {
 }
 
 // Add SSH repository to Argo
-func AddRepoSsh() error {
+func (ArgoCD) AddRepoSsh() error {
 	// Add new repo
-	output, err := run(fmt.Sprintf("argocd repo add %s --ssh-private-key-path %s --server %s", gitOpsRepoSsh, config.SSHKeyPath, argocdHost))
+	output, err := run(fmt.Sprintf("argocd repo add %s --ssh-private-key-path %s --server %s", gitOpsRepoSsh, ArgoCDConfig.SSHKeyPath, argocdHost))
 	if err != nil {
 		return fmt.Errorf("unable add repository. ERROR: %s", err)
 	}
@@ -142,7 +146,7 @@ func AddRepoSsh() error {
 }
 
 // Created new application via argocd cli
-func CreateAppCli() error {
+func (ArgoCD) CreateAppCli() error {
 	// Add new app via argocd cli
 	output, err := run(fmt.Sprintf("argocd app create app1 --repo %s --path applications/1-directory --dest-server https://kubernetes.default.svc --dest-namespace app1", gitOpsRepoSsh))
 	if err != nil {
@@ -155,7 +159,7 @@ func CreateAppCli() error {
 }
 
 // Created new application via manifest
-func CreateAppManifest() error {
+func (ArgoCD) CreateAppManifest() error {
 	// Add new app via manifest
 	output, err := run(fmt.Sprintf("kubectl apply -f %s", applicationManifest))
 	if err != nil {
@@ -165,8 +169,4 @@ func CreateAppManifest() error {
 	fmt.Println(output)
 
 	return nil
-}
-
-func run(command string) (string, error) {
-	return sh.Output("bash", "-c", command)
 }
