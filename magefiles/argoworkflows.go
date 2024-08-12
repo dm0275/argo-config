@@ -17,10 +17,12 @@ type ArgoWorkflowsConfig struct {
 }
 
 var (
-	ArgoWFConfig = ArgoWorkflowsConfig{
-		Namespace:       "argocd",
-		Version:         "v2.11.3", // use `stable` for the latest version
-		PortForwardPort: "8080",
+	workflowsRepo    = "https://github.com/dm0275/argo-gitops.git"
+	workflowsRepoSsh = "git@github.com:dm0275/argo-gitops.git"
+	ArgoWFConfig     = ArgoWorkflowsConfig{
+		Namespace:       "argo",
+		Version:         "v3.5.10", // use `stable` for the latest version
+		PortForwardPort: "2746",
 	}
 )
 
@@ -43,13 +45,13 @@ func (ArgoWorkflows) Install() error {
 	return nil
 }
 
-// Port-forward the argocd workflows server
-func (ArgoWorkflows) PortForward() error {
+// Start the Argo Server
+func (ArgoWorkflows) ArgoServer() error {
 	fmt.Println(fmt.Sprintf("Argo can be accessed at:\nhttps://localhost:%s", ArgoWFConfig.PortForwardPort))
 	// Port forward the argo-server
-	_, err := run(fmt.Sprintf("kubectl port-forward svc/argo-server -n %s %s:%s", ArgoWFConfig.Namespace, ArgoWFConfig.PortForwardPort, ArgoWFConfig.PortForwardPort))
+	_, err := run("argo server --auth-mode=server")
 	if err != nil {
-		return fmt.Errorf("unable to port-forward svc/argo-server. ERROR: %s", err)
+		return fmt.Errorf("unable to start the argo-server. ERROR: %s", err)
 	}
 
 	return nil
