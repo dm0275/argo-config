@@ -93,7 +93,7 @@ func (a ArgoCD) Login() error {
 	return nil
 }
 
-// AddHostSSHCert Add host ssh cert
+// AddHostSSHCert Add host ssh cert - Expected args: (hostname)
 func (a ArgoCD) AddHostSSHCert(hostname string) error {
 	// Add github ssh cert
 	output, err := run(fmt.Sprintf("ssh-keyscan %s | argocd cert add-ssh --batch", hostname))
@@ -121,8 +121,21 @@ func (a ArgoCD) AddGithubSSHCert() error {
 	return nil
 }
 
-// AddRepoCreds Add Argo repo credentials
-func (a ArgoCD) AddRepoCreds() error {
+// AddRepoSSHCreds Add Argo repo credentials - Expected args: (repoURL sshKeyPath)
+func (a ArgoCD) AddRepoSSHCreds(repoURL, sshKeyPath string) error {
+	// Add repocreds
+	output, err := run(fmt.Sprintf("argocd repocreds add %s --ssh-private-key-path %s", repoURL, sshKeyPath))
+	if err != nil {
+		return fmt.Errorf("unable add repocreds. ERROR: %s", err)
+	}
+
+	fmt.Println(output)
+
+	return nil
+}
+
+// AddGithubSSHCreds Add Argo repo credentials
+func (a ArgoCD) AddGithubSSHCreds() error {
 	// Add repocreds
 	output, err := run(fmt.Sprintf("argocd repocreds add git@github.com --ssh-private-key-path %s", ArgoCDConfig.SSHKeyPath))
 	if err != nil {
@@ -134,8 +147,21 @@ func (a ArgoCD) AddRepoCreds() error {
 	return nil
 }
 
-// AddRepo Add HTTP repository to Argo
-func (a ArgoCD) AddRepo() error {
+// AddHTTPRepo Add HTTP repository to Argo - Expected args: (repoURL argoURL)
+func (a ArgoCD) AddHTTPRepo(repoURL, argoURL string) error {
+	// Add new repo
+	output, err := run(fmt.Sprintf("argocd repo add %s --server %s", repoURL, argoURL))
+	if err != nil {
+		return fmt.Errorf("unable add repository. ERROR: %s", err)
+	}
+
+	fmt.Println(output)
+
+	return nil
+}
+
+// AddHTTPRepoFromVars Add HTTP repository to Argo
+func (a ArgoCD) AddHTTPRepoFromVars() error {
 	// Add new repo
 	output, err := run(fmt.Sprintf("argocd repo add %s --server %s", gitOpsRepo, argocdHost))
 	if err != nil {
@@ -147,10 +173,23 @@ func (a ArgoCD) AddRepo() error {
 	return nil
 }
 
-// AddRepoSsh Add SSH repository to Argo
-func (a ArgoCD) AddRepoSsh() error {
+// AddRepoSSHFromVars Add SSH repository to Argo
+func (a ArgoCD) AddRepoSSHFromVars() error {
 	// Add new repo
 	output, err := run(fmt.Sprintf("argocd repo add %s --ssh-private-key-path %s --server %s", gitOpsRepoSsh, ArgoCDConfig.SSHKeyPath, argocdHost))
+	if err != nil {
+		return fmt.Errorf("unable add repository. ERROR: %s", err)
+	}
+
+	fmt.Println(output)
+
+	return nil
+}
+
+// AddRepoSSH Add SSH repository to Argo - Expected args: (repoURL sshKeyPath argoURL)
+func (a ArgoCD) AddRepoSSH(repoURL, sshKeyPath, argoURL string) error {
+	// Add new repo
+	output, err := run(fmt.Sprintf("argocd repo add %s --ssh-private-key-path %s --server %s", repoURL, sshKeyPath, argoURL))
 	if err != nil {
 		return fmt.Errorf("unable add repository. ERROR: %s", err)
 	}
