@@ -1,4 +1,4 @@
-module argo-config
+module github.com/dm0275/argo-config
 
 go 1.21.10
 
