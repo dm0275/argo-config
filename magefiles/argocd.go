@@ -18,11 +18,10 @@ type ArgoCdConfig struct {
 }
 
 var (
-	argocdHost          = "localhost"
-	gitOpsRepo          = "https://github.com/dm0275/argo-gitops.git"
-	gitOpsRepoSsh       = "git@github.com:dm0275/argo-gitops.git"
-	applicationManifest = "applications/application.yaml"
-	ArgoCDConfig        = ArgoCdConfig{
+	argocdHost    = "localhost"
+	gitOpsRepo    = "https://github.com/dm0275/argo-gitops.git"
+	gitOpsRepoSsh = "git@github.com:dm0275/argo-gitops.git"
+	ArgoCDConfig  = ArgoCdConfig{
 		Namespace:       "argocd",
 		Version:         "v2.11.3", // use `stable` for the latest version
 		SSHKeyPath:      "~/.ssh/id_rsa",
@@ -199,10 +198,11 @@ func (a ArgoCD) AddRepoSSH(repoURL, sshKeyPath, argoURL string) error {
 	return nil
 }
 
-// CreateAppCli Created new application via argocd cli
-func (a ArgoCD) CreateAppCli() error {
+// CreateAppCLI Created new application via argocd cli - Expected args: (appName path repoURL  namespace)
+func (a ArgoCD) CreateAppCLI(appName, path, repoURL, namespace string) error {
 	// Add new app via argocd cli
-	output, err := run(fmt.Sprintf("argocd app create app1 --repo %s --path applications/1-directory --dest-server https://kubernetes.default.svc --dest-namespace app1", gitOpsRepoSsh))
+	output, err := run(fmt.Sprintf("argocd app create %s --repo %s --path %s --dest-server https://kubernetes.default.svc --dest-namespace %s", appName, repoURL, path, namespace))
+
 	if err != nil {
 		return fmt.Errorf("unable add application. ERROR: %s", err)
 	}
@@ -212,10 +212,10 @@ func (a ArgoCD) CreateAppCli() error {
 	return nil
 }
 
-// CreateAppManifest Created new application via manifest
-func (a ArgoCD) CreateAppManifest(file string) error {
+// CreateAppManifest Created new application via manifest  - Expected args: (manifestPath)
+func (a ArgoCD) CreateAppManifest(manifestPath string) error {
 	// Add new app via manifest
-	output, err := run(fmt.Sprintf("kubectl apply -f %s", file))
+	output, err := run(fmt.Sprintf("kubectl apply -f %s", manifestPath))
 	if err != nil {
 		return fmt.Errorf("unable add application. ERROR: %s", err)
 	}
