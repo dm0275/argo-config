@@ -30,7 +30,7 @@ var (
 	}
 )
 
-// Creates the argocd namespace and installs argocd
+// Install Creates the argocd namespace and installs argocd
 func (ArgoCD) Install() error {
 	// Create the ArgoCD namespace
 	output, err := createNamespace(ArgoCDConfig.Namespace)
@@ -49,7 +49,7 @@ func (ArgoCD) Install() error {
 	return nil
 }
 
-// Port-forward the argocd gitops server
+// PortForward Port-forward the argocd gitops server
 func (ArgoCD) PortForward() error {
 	fmt.Println(fmt.Sprintf("Argo can be accessed at:\nhttps://localhost:%s", ArgoCDConfig.PortForwardPort))
 	// Port forward the argo-server
@@ -61,7 +61,7 @@ func (ArgoCD) PortForward() error {
 	return nil
 }
 
-// Get the initial ArgoCD admin password
+// GetAdminPassword Get the initial ArgoCD admin password
 func (ArgoCD) GetAdminPassword() error {
 	// Fetching admin password
 	output, err := run(fmt.Sprintf("argocd admin initial-password -n %s | head -n 1", ArgoCDConfig.Namespace))
@@ -74,7 +74,7 @@ func (ArgoCD) GetAdminPassword() error {
 	return nil
 }
 
-// Login to argo via the cli (requires the argocd service to be accessible)
+// Login Login to argo via the cli (requires the argocd service to be accessible)
 func (ArgoCD) Login() error {
 	// Fetching admin password
 	adminPass, err := run("argocd admin initial-password -n argocd | head -n 1")
@@ -93,7 +93,7 @@ func (ArgoCD) Login() error {
 	return nil
 }
 
-// Add github ssh cert
+// AddKnownHosts Add github ssh cert
 func (ArgoCD) AddKnownHosts() error {
 	// Add github ssh cert
 	output, err := run("ssh-keyscan github.com | argocd cert add-ssh --batch")
@@ -106,7 +106,7 @@ func (ArgoCD) AddKnownHosts() error {
 	return nil
 }
 
-// Add Argo repo credentials
+// AddRepoCreds Add Argo repo credentials
 func (ArgoCD) AddRepoCreds() error {
 	// Add repocreds
 	output, err := run(fmt.Sprintf("argocd repocreds add git@github.com --ssh-private-key-path %s", ArgoCDConfig.SSHKeyPath))
@@ -119,7 +119,7 @@ func (ArgoCD) AddRepoCreds() error {
 	return nil
 }
 
-// Add HTTP repository to Argo
+// AddRepo Add HTTP repository to Argo
 func (ArgoCD) AddRepo() error {
 	// Add new repo
 	output, err := run(fmt.Sprintf("argocd repo add %s --server %s", gitOpsRepo, argocdHost))
@@ -132,7 +132,7 @@ func (ArgoCD) AddRepo() error {
 	return nil
 }
 
-// Add SSH repository to Argo
+// AddRepoSsh Add SSH repository to Argo
 func (ArgoCD) AddRepoSsh() error {
 	// Add new repo
 	output, err := run(fmt.Sprintf("argocd repo add %s --ssh-private-key-path %s --server %s", gitOpsRepoSsh, ArgoCDConfig.SSHKeyPath, argocdHost))
@@ -145,7 +145,7 @@ func (ArgoCD) AddRepoSsh() error {
 	return nil
 }
 
-// Created new application via argocd cli
+// CreateAppCli Created new application via argocd cli
 func (ArgoCD) CreateAppCli() error {
 	// Add new app via argocd cli
 	output, err := run(fmt.Sprintf("argocd app create app1 --repo %s --path applications/1-directory --dest-server https://kubernetes.default.svc --dest-namespace app1", gitOpsRepoSsh))
@@ -158,7 +158,7 @@ func (ArgoCD) CreateAppCli() error {
 	return nil
 }
 
-// Created new application via manifest
+// CreateAppManifest Created new application via manifest
 func (ArgoCD) CreateAppManifest() error {
 	// Add new app via manifest
 	output, err := run(fmt.Sprintf("kubectl apply -f %s", applicationManifest))

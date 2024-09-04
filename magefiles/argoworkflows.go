@@ -26,7 +26,7 @@ var (
 	}
 )
 
-// Install argocd workflows
+// Install Install argocd workflows
 func (ArgoWorkflows) Install() error {
 	// Create the ArgoCD namespace
 	output, err := createNamespace(ArgoWFConfig.Namespace)
@@ -45,7 +45,7 @@ func (ArgoWorkflows) Install() error {
 	return nil
 }
 
-// Start the Argo Server
+// ArgoServer Start the Argo Server
 func (ArgoWorkflows) ArgoServer() error {
 	fmt.Println(fmt.Sprintf("Argo can be accessed at:\nhttps://localhost:%s", ArgoWFConfig.PortForwardPort))
 	// Port forward the argo-server
